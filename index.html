@@ -192,11 +192,11 @@
 
         let net = gross - distPen - imbPen - silPen + bonus;
 
-        // 3. Study Hours (Self Study only for density)
+        // 3. Study Hours (Total of Self-Study, Revision, and Coaching/School)
         let hrs = 0;
-        hrs += parseFloat(document.querySelector('.p-ss').value) || 0;
-        hrs += parseFloat(document.querySelector('.c-ss').value) || 0;
-        hrs += parseFloat(document.querySelector('.m-ss').value) || 0;
+        document.querySelectorAll('.t-calc').forEach(input => {
+            hrs += parseFloat(input.value) || 0;
+        });
 
         // 4. Density
         let density = hrs > 0 ? (net / hrs) : 0;
@@ -311,7 +311,7 @@
         if(chartHrs) chartHrs.destroy();
         chartHrs = new Chart(document.getElementById('hoursChart'), {
             type: 'bar',
-            data: { labels, datasets: [{ label: 'Self-Study Hours', data: hrsData, backgroundColor: '#2196f3', borderRadius: 4 }] },
+            data: { labels, datasets: [{ label: 'Study Hours', data: hrsData, backgroundColor: '#2196f3', borderRadius: 4 }] },
             options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
         });
     }
@@ -344,5 +344,5 @@
     }
 </script>
 </body>
-                                                                                               </html>
-                
+    </html>
+                    
