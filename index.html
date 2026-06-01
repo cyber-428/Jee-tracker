@@ -3,201 +3,346 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEE Elite Omni</title>
+    <title>JEE Elite Omni Protocol</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #222; --header: #fff; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #2a2a2a; --header: #fff; --accent: #444; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
         
         nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-        nav button { flex: 1; background: none; border: none; color: var(--text); padding: 15px; font-size: 0.7rem; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; }
+        nav button { flex: 1; background: none; border: none; color: var(--text); padding: 15px 5px; font-size: 0.75rem; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; font-weight: 600; }
         nav button.active { color: var(--header); border-bottom: 2px solid var(--header); }
 
-        .container { padding: 15px; max-width: 700px; margin: 0 auto; }
+        .container { padding: 15px; max-width: 800px; margin: 0 auto; }
         .page { display: none; }
         .active { display: block; }
 
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        h2 { color: var(--header); font-weight: 400; margin-top: 0; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 20px; overflow-x: auto; }
+        h2 { color: var(--header); font-weight: 500; font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { font-size: 1rem; color: #ddd; margin: 15px 0 10px 0; }
+
+        input, select, textarea { width: 100%; background: #000; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        input[type="number"] { text-align: center; }
         
-        input, select, textarea { 
-            width: 100%; background: #000; border: 1px solid var(--border); 
-            color: #fff; padding: 12px; border-radius: 6px; box-sizing: border-box; margin-bottom: 10px; font-size: 1rem;
-        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.8rem; }
+        th, td { border: 1px solid var(--border); padding: 5px; text-align: center; }
+        th { color: var(--header); font-weight: 500; background: #1a1a1a; }
+        td input { padding: 8px 4px; border: none; background: transparent; }
+        td input:focus { outline: 1px solid #666; background: #0a0a0a; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .table-input { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.8rem; }
-        .table-input th { text-align: left; color: var(--header); padding-bottom: 10px; }
-        .table-input input { padding: 5px; margin: 0; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .flex-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; }
+        .flex-row input { width: 60px; padding: 6px; }
 
-        .btn { width: 100%; padding: 15px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .matrix-box { border: 1px solid var(--border); padding: 10px; border-radius: 4px; background: #0a0a0a; text-align: right; }
+        .matrix-box span { color: var(--header); font-weight: bold; font-size: 1.1rem; }
+
+        .btn { width: 100%; padding: 15px; border-radius: 4px; border: none; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
         .btn-primary { background: #fff; color: #000; }
         .btn-secondary { background: #1a1a1a; color: #fff; border: 1px solid var(--border); }
+        .btn-danger { background: #3a0a0a; color: #ff5555; border: 1px solid #5a1a1a; }
 
-        .log-item { border-bottom: 1px solid var(--border); padding: 15px 0; }
-        .log-item:last-child { border: none; }
-        .tag { background: #222; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-right: 5px; }
+        .log-item { background: #0a0a0a; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 10px; }
+        .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 8px; margin-bottom: 8px; }
+        .sub-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin-right: 5px; color: #ccc; }
     </style>
 </head>
 <body>
 
 <nav>
-    <button class="active" onclick="showPage('log', this)">Log Entry</button>
-    <button onclick="showPage('stats', this)">Analytics</button>
-    <button onclick="showPage('data', this)">Sync/Data</button>
+    <button class="active" onclick="showPage('log', this)">Diary Entry</button>
+    <button onclick="showPage('stats', this)">Monthly Stats</button>
+    <button onclick="showPage('data', this)">Sync Data</button>
 </nav>
 
 <div class="container">
     <div id="log" class="page active">
-        <h2>Daily Protocol</h2>
         <div class="card">
-            <label>Date</label>
-            <input type="date" id="dateInput">
-            
-            <div class="grid">
-                <div><label>Study Hours</label><input type="number" id="studyHours" step="0.1"></div>
-                <div><label>Distractions</label><input type="number" id="distractions"></div>
+            <div class="grid-2">
+                <div><label>Date:</label><input type="date" id="dateInput"></div>
+                <div><label>Core Goals:</label><input type="text" id="coreGoals" placeholder="Main focus today..."></div>
             </div>
+        </div>
 
-            <table class="table-input">
-                <thead><tr><th>Type</th><th>P</th><th>C</th><th>M</th></tr></thead>
-                <tbody id="qMatrix">
-                    <tr data-pt="5"><td>Basic</td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td></tr>
-                    <tr data-pt="12"><td>Mains</td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td></tr>
-                    <tr data-pt="18"><td>Interm.</td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td></tr>
-                    <tr data-pt="35"><td>Adv/Oly</td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td></tr>
-                </tbody>
+        <div class="card">
+            <h2>Section 1: The Question Breakdown</h2>
+            <table id="sec1">
+                <tr><th>Type</th><th>Physics Q</th><th>Chemistry Q</th><th>Math Q</th></tr>
+                <tr data-pts="5"><td>Basic (5)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="12"><td>Mains (10-15)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="18"><td>Interm (15-20)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="35"><td>Adv/Olym (30-40)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="60"><td>INPhO/Path (60)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
             </table>
 
-            <label>Chapters / Concepts / Books</label>
-            <textarea id="concepts" rows="2" placeholder="e.g. Physics: Kinematics (HC Verma)"></textarea>
-            
-            <button class="btn btn-primary" onclick="saveData()">Seal Daily Log</button>
+            <h2>Section 2: Time Log</h2>
+            <table id="sec2">
+                <tr><th></th><th>Phy</th><th>Chem</th><th>Math</th></tr>
+                <tr><td>Self-Study Hrs</td><td><input type="number" step="0.1" class="t-calc p-ss"></td><td><input type="number" step="0.1" class="t-calc c-ss"></td><td><input type="number" step="0.1" class="t-calc m-ss"></td></tr>
+                <tr><td>Revision Hrs</td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td></tr>
+                <tr><td>Coaching/School</td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td></tr>
+            </table>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h2>Sec 3: Penalty & Bonus</h2>
+                <div class="flex-row"><span>Distraction Tally</span><input type="number" id="penDist" class="q-calc" placeholder="0"></div>
+                <div class="flex-row"><span>Subject Imbalance (-pts)</span><input type="number" id="penImb" class="q-calc" placeholder="0"></div>
+                <hr style="border:0; border-top:1px solid #222; margin:10px 0;">
+                <div class="flex-row" style="color:#aaa; font-size:0.7rem;">Accuracy Bonus (FTC +1)</div>
+                <div class="flex-row"><span>Mains | Adv</span>
+                    <div><input type="number" id="bonMains" class="q-calc" placeholder="M"><input type="number" id="bonAdv" class="q-calc" placeholder="A" style="margin-left:5px;"></div>
+                </div>
+                <div class="flex-row" style="color:#aaa; font-size:0.7rem;">Silly Mistakes (-2 M, -5 A)</div>
+                <div class="flex-row"><span>Mains | Adv</span>
+                    <div><input type="number" id="silMains" class="q-calc" placeholder="M"><input type="number" id="silAdv" class="q-calc" placeholder="A" style="margin-left:5px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Sec 4: Daily Matrix</h2>
+                <div class="flex-row">1) Gross Points <div class="matrix-box"><span id="mxGross">0</span></div></div>
+                <div class="flex-row">2) Net Points <div class="matrix-box"><span id="mxNet">0</span></div></div>
+                <div class="flex-row">3) Study Hours <div class="matrix-box"><span id="mxHrs">0.0</span></div></div>
+                <div class="flex-row">4) Density <div class="matrix-box"><span id="mxDens">0.00</span></div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Study Material Tracker</h2>
+            <table id="matTable">
+                <tr><th>Subject</th><th>Chapter</th><th>Concept</th><th>Material</th></tr>
+                <tr><td>Physics</td><td><input type="text" id="p-chap"></td><td><input type="text" id="p-con"></td><td><input type="text" id="p-mat"></td></tr>
+                <tr><td>Chemistry</td><td><input type="text" id="c-chap"></td><td><input type="text" id="c-con"></td><td><input type="text" id="c-mat"></td></tr>
+                <tr><td>Maths</td><td><input type="text" id="m-chap"></td><td><input type="text" id="m-con"></td><td><input type="text" id="m-mat"></td></tr>
+            </table>
+            <button class="btn btn-primary" onclick="saveDiary()">Save Diary Entry</button>
         </div>
     </div>
 
     <div id="stats" class="page">
-        <h2>Statistics</h2>
-        <div class="card"><canvas id="chart"></canvas></div>
-        
-        <input type="text" id="searchBar" placeholder="Filter by Topic/Chapter..." onkeyup="renderLog()">
-        
-        <div class="card" id="historyContainer"></div>
+        <div class="card">
+            <h2>Monthly Statistics</h2>
+            <canvas id="densityChart" height="150"></canvas>
+            <div style="margin-top:20px;"></div>
+            <canvas id="hoursChart" height="150"></canvas>
+        </div>
+
+        <div class="card">
+            <div class="grid-2">
+                <input type="text" id="searchFilter" placeholder="Search..." onkeyup="renderLog()">
+                <select id="sortFilter" onchange="renderLog()">
+                    <option value="dateDesc">Sort: Date (Newest)</option>
+                    <option value="dateAsc">Sort: Date (Oldest)</option>
+                    <option value="chapter">Sort: Chapter</option>
+                    <option value="concept">Sort: Concept</option>
+                    <option value="material">Sort: Material</option>
+                </select>
+            </div>
+        </div>
+        <div id="historyContainer"></div>
     </div>
 
     <div id="data" class="page">
-        <h2>Data Management</h2>
         <div class="card">
-            <p>Export your data to a JSON file to share with other devices.</p>
-            <button class="btn btn-secondary" onclick="exportData()">Download JSON File</button>
-            <div style="margin-top: 20px;">
-                <label>Import JSON File</label>
-                <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
-            </div>
-            <button class="btn" style="background: #300; color: #f55; margin-top: 40px;" onclick="clearAll()">Wipe Local Database</button>
+            <h2>Database Sync</h2>
+            <p style="font-size:0.85rem; color:#888;">Export your JSON data to move it across devices. No data is stored on external servers.</p>
+            <button class="btn btn-secondary" onclick="exportData()">Download .JSON</button>
+            <br><br>
+            <label>Upload .JSON</label>
+            <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+            <br><br><br>
+            <button class="btn btn-danger" onclick="clearAll()">Wipe All Data</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Initialize Date
+    // Set today's date
     document.getElementById('dateInput').valueAsDate = new Date();
+
+    // Attach Live Calculators
+    document.querySelectorAll('.q-calc, .t-calc').forEach(el => el.addEventListener('input', calculateMatrix));
+
+    function calculateMatrix() {
+        // 1. Gross Points
+        let gross = 0;
+        document.querySelectorAll('#sec1 tr[data-pts]').forEach(row => {
+            let pts = parseInt(row.getAttribute('data-pts'));
+            let inputs = row.querySelectorAll('input');
+            let pQ = parseInt(inputs[0].value) || 0;
+            let cQ = parseInt(inputs[1].value) || 0;
+            let mQ = parseInt(inputs[2].value) || 0;
+            gross += (pQ + cQ + mQ) * pts;
+        });
+
+        // 2. Penalties & Bonuses
+        let dist = parseInt(document.getElementById('penDist').value) || 0;
+        let distPen = Math.floor(dist/5) * 10;
+        let imbPen = parseInt(document.getElementById('penImb').value) || 0;
+        
+        let bonM = parseInt(document.getElementById('bonMains').value) || 0;
+        let bonA = parseInt(document.getElementById('bonAdv').value) || 0;
+        let bonus = bonM + bonA; // +1 pt each
+
+        let silM = parseInt(document.getElementById('silMains').value) || 0;
+        let silA = parseInt(document.getElementById('silAdv').value) || 0;
+        let silPen = (silM * 2) + (silA * 5);
+
+        let net = gross - distPen - imbPen - silPen + bonus;
+
+        // 3. Study Hours (Self Study only for density)
+        let hrs = 0;
+        hrs += parseFloat(document.querySelector('.p-ss').value) || 0;
+        hrs += parseFloat(document.querySelector('.c-ss').value) || 0;
+        hrs += parseFloat(document.querySelector('.m-ss').value) || 0;
+
+        // 4. Density
+        let density = hrs > 0 ? (net / hrs) : 0;
+
+        // Update UI
+        document.getElementById('mxGross').innerText = gross;
+        document.getElementById('mxNet').innerText = net;
+        document.getElementById('mxHrs').innerText = hrs.toFixed(1);
+        document.getElementById('mxDens').innerText = density.toFixed(2);
+
+        return { gross, net, hrs, density };
+    }
+
+    function saveDiary() {
+        const matrix = calculateMatrix();
+        const entry = {
+            id: Date.now(),
+            date: document.getElementById('dateInput').value,
+            goals: document.getElementById('coreGoals').value,
+            matrix: matrix,
+            material: {
+                p: { chap: document.getElementById('p-chap').value, con: document.getElementById('p-con').value, mat: document.getElementById('p-mat').value },
+                c: { chap: document.getElementById('c-chap').value, con: document.getElementById('c-con').value, mat: document.getElementById('c-mat').value },
+                m: { chap: document.getElementById('m-chap').value, con: document.getElementById('m-con').value, mat: document.getElementById('m-mat').value }
+            }
+        };
+
+        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        // Remove existing entry for same date to overwrite, or just push
+        const filteredDb = db.filter(d => d.date !== entry.date);
+        filteredDb.push(entry);
+        
+        localStorage.setItem('jee_v3', JSON.stringify(filteredDb));
+        alert("Diary Entry Saved Successfully.");
+        
+        // Clear inputs optional, keeping them is usually better for mobile editing
+    }
 
     function showPage(id, btn) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         btn.classList.add('active');
-        if(id === 'stats') { renderChart(); renderLog(); }
-    }
-
-    function saveData() {
-        const rows = document.querySelectorAll('#qMatrix tr');
-        let pPts = 0, cPts = 0, mPts = 0;
-
-        rows.forEach(row => {
-            const pt = parseInt(row.dataset.pt);
-            const ins = row.querySelectorAll('input');
-            pPts += (parseInt(ins[0].value) || 0) * pt;
-            cPts += (parseInt(ins[1].value) || 0) * pt;
-            mPts += (parseInt(ins[2].value) || 0) * pt;
-        });
-
-        let total = pPts + cPts + mPts;
-        const dist = parseInt(document.getElementById('distractions').value) || 0;
-        if(dist >= 5) total -= (Math.floor(dist/5) * 10); // Penalty
-
-        const hours = parseFloat(document.getElementById('studyHours').value) || 1;
-        const entry = {
-            date: document.getElementById('dateInput').value,
-            points: total,
-            hours: hours,
-            density: (total / hours).toFixed(2),
-            concepts: document.getElementById('concepts').value
-        };
-
-        const db = JSON.parse(localStorage.getItem('jee_master') || '[]');
-        db.push(entry);
-        localStorage.setItem('jee_master', JSON.stringify(db));
-        alert("Daily Log Secured.");
+        if(id === 'stats') { renderCharts(); renderLog(); }
     }
 
     function renderLog() {
-        const query = document.getElementById('searchBar').value.toLowerCase();
-        const db = JSON.parse(localStorage.getItem('jee_master') || '[]');
+        const query = document.getElementById('searchFilter').value.toLowerCase();
+        const sortBy = document.getElementById('sortFilter').value;
+        let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+
+        // Filter
+        if(query) {
+            db = db.filter(item => {
+                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.p.con} ${item.material.p.mat} ${item.material.c.chap} ${item.material.c.con} ${item.material.c.mat} ${item.material.m.chap} ${item.material.m.con} ${item.material.m.mat}`.toLowerCase();
+                return searchStr.includes(query);
+            });
+        }
+
+        // Sort
+        db.sort((a, b) => {
+            if(sortBy === 'dateDesc') return new Date(b.date) - new Date(a.date);
+            if(sortBy === 'dateAsc') return new Date(a.date) - new Date(b.date);
+            
+            const getStr = (item, field) => `${item.material.p[field]} ${item.material.c[field]} ${item.material.m[field]}`.toLowerCase();
+            
+            if(sortBy === 'chapter') return getStr(a, 'chap').localeCompare(getStr(b, 'chap'));
+            if(sortBy === 'concept') return getStr(a, 'con').localeCompare(getStr(b, 'con'));
+            if(sortBy === 'material') return getStr(a, 'mat').localeCompare(getStr(b, 'mat'));
+        });
+
         const container = document.getElementById('historyContainer');
-        
-        container.innerHTML = db.reverse().filter(item => 
-            item.concepts.toLowerCase().includes(query) || item.date.includes(query)
-        ).map(item => `
+        container.innerHTML = db.map(item => `
             <div class="log-item">
-                <div style="display:flex; justify-content:space-between;">
+                <div class="log-header">
                     <b style="color:#fff">${item.date}</b>
-                    <span>${item.density} Dns</span>
+                    <span style="color:#fff; font-weight:bold;">${item.matrix.density.toFixed(2)} Dns</span>
                 </div>
-                <div style="font-size:0.8rem; margin-top:5px;">${item.concepts}</div>
-                <div style="color:#555; font-size:0.7rem;">Points: ${item.points} | Hours: ${item.hours}</div>
+                <div style="font-size:0.8rem; color:#888; margin-bottom:8px;">Goal: ${item.goals || 'N/A'}</div>
+                <div style="font-size:0.75rem; margin-bottom:8px;">
+                    Net Pts: <b style="color:#fff">${item.matrix.net}</b> | 
+                    Hrs: <b style="color:#fff">${item.matrix.hrs.toFixed(1)}</b>
+                </div>
+                <div style="font-size:0.75rem; line-height:1.4;">
+                    <span class="sub-tag">P</span> ${item.material.p.chap} - ${item.material.p.con} <br>
+                    <span class="sub-tag">C</span> ${item.material.c.chap} - ${item.material.c.con} <br>
+                    <span class="sub-tag">M</span> ${item.material.m.chap} - ${item.material.m.con}
+                </div>
             </div>
         `).join('');
     }
 
+    let chartDens, chartHrs;
+    function renderCharts() {
+        let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        db.sort((a, b) => new Date(a.date) - new Date(b.date)); // chronological for charts
+
+        const labels = db.map(d => d.date.substring(5)); // MM-DD
+        const densData = db.map(d => d.matrix.density);
+        const hrsData = db.map(d => d.matrix.hrs);
+
+        Chart.defaults.color = '#888';
+        Chart.defaults.borderColor = '#222';
+
+        if(chartDens) chartDens.destroy();
+        chartDens = new Chart(document.getElementById('densityChart'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Density (Net Pts / Hr)', data: densData, borderColor: '#4caf50', backgroundColor: 'rgba(76, 175, 80, 0.1)', fill: true, tension: 0.3 }] },
+            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        if(chartHrs) chartHrs.destroy();
+        chartHrs = new Chart(document.getElementById('hoursChart'), {
+            type: 'bar',
+            data: { labels, datasets: [{ label: 'Self-Study Hours', data: hrsData, backgroundColor: '#2196f3', borderRadius: 4 }] },
+            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // Data Management
     function exportData() {
-        const data = localStorage.getItem('jee_master') || '[]';
+        const data = localStorage.getItem('jee_v3') || '[]';
         const blob = new Blob([data], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `jee_data_${new Date().toISOString().slice(0,10)}.json`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `jee_omni_backup_${new Date().toISOString().slice(0,10)}.json`;
         a.click();
     }
 
     function importData(e) {
-        const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = (event) => {
-            localStorage.setItem('jee_master', event.target.result);
-            alert("Data Merged/Loaded Successfully.");
-            renderLog();
+            localStorage.setItem('jee_v3', event.target.result);
+            alert("Data Loaded Successfully.");
+            location.reload();
         };
-        reader.readAsText(file);
+        reader.readAsText(e.target.files[0]);
     }
 
-    function clearAll() { if(confirm("Erase everything?")) { localStorage.clear(); location.reload(); } }
-
-    let chart;
-    function renderChart() {
-        const db = JSON.parse(localStorage.getItem('jee_master') || '[]');
-        const ctx = document.getElementById('chart').getContext('2d');
-        if(chart) chart.destroy();
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: db.map(d => d.date),
-                datasets: [{ label: 'Density', data: db.map(d => d.density), borderColor: '#fff', tension: 0.2 }]
-            },
-            options: { scales: { y: { beginAtZero: true } } }
-        });
+    function clearAll() { 
+        if(confirm("DANGER: This will permanently wipe your phone's database. Are you sure?")) { 
+            localStorage.removeItem('jee_v3'); 
+            location.reload(); 
+        } 
     }
 </script>
 </body>
-</html>
+                                                                                               </html>
+                
