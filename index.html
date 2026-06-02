@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEE Diary</title>
+    <title>JEE Elite Omni Protocol</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #2a2a2a; --header: #fff; --accent: #444; }
@@ -47,7 +47,6 @@
         .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 8px; margin-bottom: 8px; }
         .sub-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin-right: 5px; color: #ccc; }
 
-        /* Modal Styles */
         #summaryModal { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; overflow-y: auto; }
         .modal-content { max-width: 600px; margin: 40px auto; padding: 20px; background: #111; border: 1px solid var(--border); border-radius: 8px; }
         .close-modal { float: right; cursor: pointer; color: #888; font-size: 1.5rem; }
@@ -180,8 +179,11 @@
 </div>
 
 <script>
-    document.getElementById('dateInput').valueAsDate = new Date();
-    document.querySelectorAll('.q-calc, .t-calc').forEach(el => el.addEventListener('input', calculateMatrix));
+    // Moved JS logic inside DOMContentLoaded to ensure it runs on deployment
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('dateInput').valueAsDate = new Date();
+        document.querySelectorAll('.q-calc, .t-calc').forEach(el => el.addEventListener('input', calculateMatrix));
+    });
 
     function calculateMatrix() {
         let gross = 0;
@@ -284,11 +286,6 @@
                     Hrs: <b style="color:#fff">${item.matrix.hrs.toFixed(1)}</b> |
                     Phone: <b style="color:#ff5555">${item.phone || 0}h</b>
                 </div>
-                <div style="font-size:0.75rem; line-height:1.4;">
-                    <span class="sub-tag">P</span> ${item.material.p.chap} <br>
-                    <span class="sub-tag">C</span> ${item.material.c.chap} <br>
-                    <span class="sub-tag">M</span> ${item.material.m.chap}
-                </div>
             </div>
         `).join('');
     }
@@ -296,6 +293,7 @@
     let chartDens, chartHrs;
     function renderCharts() {
         let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        if(db.length === 0) return;
         db.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
         const labels = db.map(d => d.date.substring(5)); 
@@ -306,9 +304,6 @@
             cumulativeHrs += d.matrix.hrs;
             return cumulativeHrs;
         });
-
-        Chart.defaults.color = '#888';
-        Chart.defaults.borderColor = '#222';
 
         if(chartDens) chartDens.destroy();
         chartDens = new Chart(document.getElementById('densityChart'), {
@@ -325,12 +320,10 @@
         });
     }
 
-    // Modal & Summary Logic
     function openDaySummary(dateStr) {
         const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
         const day = db.find(d => d.date === dateStr);
         if(!day) return;
-
         const content = `
             <h2 style="color:#fff">Summary: ${day.date}</h2>
             <p><b>Goal:</b> ${day.goals}</p>
@@ -340,7 +333,79 @@
                 <p>Density: ${day.matrix.density.toFixed(2)}</p>
                 <p>Phone Usage: ${day.phone || 0} hrs</p>
             </div>
-            <h3>Material Covered:</h3>
-            <p><span class="sub-tag">P</span> ${day.material.p.chap}: ${day.material.p.con}</p>
-            <p><span class="sub-tag">C</span> ${day.material.c.chap}: ${day.material.c.con}</p>
-            <p><span class="sub-tag"
+        `;
+        document.getElementById('summaryContent').innerHTML = content;
+        document.getElementById('summaryModal').style.display = 'block';
+    }
+
+    function openPeriodSummary(type) {
+        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        if(db.length === 0) return alert("No data available.");
+        const groups = {};
+        db.forEach(entry => {
+            let key;
+            const date = new Date(entry.date);
+            if(type === 'month') { key = entry.date.substring(0, 7); } 
+            else {
+                const firstDay = new Date(date.getFullYear(), 0, 1);
+                const weekNum = Math.ceil((((date - firstDay) / 86400000) + firstDay.getDay() + 1) / 7);
+                key = `${date.getFullYear()}-W${weekNum}`;
+            }
+            if(!groups[key]) groups[key] = [];
+            groups[key].push(entry);
+        });
+        let html = `<h2 style="color:#fff">Select a ${type === 'month' ? 'Month' : 'Week'}</h2>`;
+        Object.keys(groups).sort().reverse().forEach(key => {
+            html += `<div class="card" style="cursor:pointer" onclick="showGroupDetail('${key}', '${type}')"><b style="color:#fff">${key}</b></div>`;
+        });
+        document.getElementById('summaryContent').innerHTML = html;
+        document.getElementById('summaryModal').style.display = 'block';
+    }
+
+    function showGroupDetail(key, type) {
+        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        const filtered = db.filter(entry => {
+            if(type === 'month') return entry.date.startsWith(key);
+            const date = new Date(entry.date);
+            const firstDay = new Date(date.getFullYear(), 0, 1);
+            const weekNum = Math.ceil((((date - firstDay) / 86400000) + firstDay.getDay() + 1) / 7);
+            return `${date.getFullYear()}-W${weekNum}` === key;
+        });
+        const totalNet = filtered.reduce((s, c) => s + c.matrix.net, 0);
+        const totalHrs = filtered.reduce((s, c) => s + c.matrix.hrs, 0);
+        let html = `<h2 style="color:#fff">${key}</h2><div class="card"><p>Total Net: ${totalNet}</p><p>Total Hours: ${totalHrs.toFixed(1)}</p></div>`;
+        html += `<button class="btn btn-secondary" onclick="openPeriodSummary('${type}')">Back</button>`;
+        document.getElementById('summaryContent').innerHTML = html;
+    }
+
+    function closeModal() { document.getElementById('summaryModal').style.display = 'none'; }
+    window.onclick = function(event) { if (event.target == document.getElementById('summaryModal')) closeModal(); }
+    
+    function exportData() {
+        const data = localStorage.getItem('jee_v3') || '[]';
+        const blob = new Blob([data], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `jee_omni_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+    }
+
+    function importData(e) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            localStorage.setItem('jee_v3', event.target.result);
+            alert("Data Loaded Successfully.");
+            location.reload();
+        };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    function clearAll() { 
+        if(confirm("DANGER: This will wipe data. Are you sure?")) { 
+            localStorage.removeItem('jee_v3'); 
+            location.reload(); 
+        } 
+    }
+</script>
+</body>
+</html>
