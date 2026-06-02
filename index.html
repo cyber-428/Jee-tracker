@@ -50,6 +50,8 @@
         #summaryModal { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; overflow-y: auto; }
         .modal-content { max-width: 600px; margin: 40px auto; padding: 20px; background: #111; border: 1px solid var(--border); border-radius: 8px; }
         .close-modal { float: right; cursor: pointer; color: #888; font-size: 1.5rem; }
+        .summary-label { color: #888; font-size: 0.8rem; text-transform: uppercase; display: block; margin-top: 10px; }
+        .summary-val { color: #fff; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -80,11 +82,11 @@
             <h2>Section 1: The Question Breakdown</h2>
             <table id="sec1">
                 <tr><th>Type</th><th>Physics Q</th><th>Chemistry Q</th><th>Math Q</th></tr>
-                <tr data-pts="5"><td>Basic (5)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
-                <tr data-pts="12"><td>Mains (10-15)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
-                <tr data-pts="18"><td>Interm (15-20)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
-                <tr data-pts="35"><td>Adv/Olym (30-40)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
-                <tr data-pts="60"><td>INPhO/Path (60)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="5" data-label="Basic"><td>Basic (5)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="12" data-label="Mains"><td>Mains (10-15)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="18" data-label="Interm"><td>Interm (15-20)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="35" data-label="Adv/Olym"><td>Adv/Olym (30-40)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
+                <tr data-pts="60" data-label="INPhO/Path"><td>INPhO/Path (60)</td><td><input type="number" class="q-calc p-q"></td><td><input type="number" class="q-calc c-q"></td><td><input type="number" class="q-calc m-q"></td></tr>
             </table>
 
             <h2>Section 2: Time Log</h2>
@@ -179,7 +181,6 @@
 </div>
 
 <script>
-    // Moved JS logic inside DOMContentLoaded to ensure it runs on deployment
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('dateInput').valueAsDate = new Date();
         document.querySelectorAll('.q-calc, .t-calc').forEach(el => el.addEventListener('input', calculateMatrix));
@@ -187,13 +188,16 @@
 
     function calculateMatrix() {
         let gross = 0;
+        let qData = [];
         document.querySelectorAll('#sec1 tr[data-pts]').forEach(row => {
             let pts = parseInt(row.getAttribute('data-pts'));
+            let label = row.getAttribute('data-label');
             let inputs = row.querySelectorAll('input');
             let pQ = parseInt(inputs[0].value) || 0;
             let cQ = parseInt(inputs[1].value) || 0;
             let mQ = parseInt(inputs[2].value) || 0;
             gross += (pQ + cQ + mQ) * pts;
+            qData.push({ label, p: pQ, c: cQ, m: mQ });
         });
 
         let dist = parseInt(document.getElementById('penDist').value) || 0;
@@ -219,7 +223,7 @@
         document.getElementById('mxHrs').innerText = hrs.toFixed(1);
         document.getElementById('mxDens').innerText = density.toFixed(2);
 
-        return { gross, net, hrs, density };
+        return { gross, net, hrs, density, qData, dist };
     }
 
     function saveDiary() {
@@ -259,7 +263,7 @@
 
         if(query) {
             db = db.filter(item => {
-                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.p.con} ${item.material.p.mat} ${item.material.c.chap} ${item.material.c.con} ${item.material.c.mat} ${item.material.m.chap} ${item.material.m.con} ${item.material.m.mat}`.toLowerCase();
+                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.p.con} ${item.material.p.mat}`.toLowerCase();
                 return searchStr.includes(query);
             });
         }
@@ -267,10 +271,7 @@
         db.sort((a, b) => {
             if(sortBy === 'dateDesc') return new Date(b.date) - new Date(a.date);
             if(sortBy === 'dateAsc') return new Date(a.date) - new Date(b.date);
-            const getStr = (item, field) => `${item.material.p[field]} ${item.material.c[field]} ${item.material.m[field]}`.toLowerCase();
-            if(sortBy === 'chapter') return getStr(a, 'chap').localeCompare(getStr(b, 'chap'));
-            if(sortBy === 'concept') return getStr(a, 'con').localeCompare(getStr(b, 'con'));
-            if(sortBy === 'material') return getStr(a, 'mat').localeCompare(getStr(b, 'mat'));
+            return 0;
         });
 
         const container = document.getElementById('historyContainer');
@@ -280,58 +281,42 @@
                     <b style="color:#fff">${item.date}</b>
                     <span style="color:#fff; font-weight:bold;">${item.matrix.density.toFixed(2)} Dns</span>
                 </div>
-                <div style="font-size:0.8rem; color:#888; margin-bottom:8px;">Goal: ${item.goals || 'N/A'}</div>
-                <div style="font-size:0.75rem; margin-bottom:8px;">
-                    Net Pts: <b style="color:#fff">${item.matrix.net}</b> | 
-                    Hrs: <b style="color:#fff">${item.matrix.hrs.toFixed(1)}</b> |
-                    Phone: <b style="color:#ff5555">${item.phone || 0}h</b>
-                </div>
+                <div style="font-size:0.8rem; color:#888;">Goal: ${item.goals || 'N/A'}</div>
             </div>
         `).join('');
-    }
-
-    let chartDens, chartHrs;
-    function renderCharts() {
-        let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        if(db.length === 0) return;
-        db.sort((a, b) => new Date(a.date) - new Date(b.date)); 
-
-        const labels = db.map(d => d.date.substring(5)); 
-        const densData = db.map(d => d.matrix.density);
-        
-        let cumulativeHrs = 0;
-        const hrsData = db.map(d => {
-            cumulativeHrs += d.matrix.hrs;
-            return cumulativeHrs;
-        });
-
-        if(chartDens) chartDens.destroy();
-        chartDens = new Chart(document.getElementById('densityChart'), {
-            type: 'line',
-            data: { labels, datasets: [{ label: 'Density (Net Pts / Hr)', data: densData, borderColor: '#4caf50', backgroundColor: 'rgba(76, 175, 80, 0.1)', fill: true, tension: 0.3 }] },
-            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
-        });
-
-        if(chartHrs) chartHrs.destroy();
-        chartHrs = new Chart(document.getElementById('hoursChart'), {
-            type: 'line',
-            data: { labels, datasets: [{ label: 'Cumulative Study Hours', data: hrsData, borderColor: '#2196f3', backgroundColor: 'rgba(33, 150, 243, 0.1)', fill: true, tension: 0.1 }] },
-            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
-        });
     }
 
     function openDaySummary(dateStr) {
         const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
         const day = db.find(d => d.date === dateStr);
         if(!day) return;
+
+        let qLog = "";
+        day.matrix.qData.forEach(q => {
+            if(q.p > 0) qLog += `<div>Physics: ${q.p} ${q.label} Questions</div>`;
+            if(q.c > 0) qLog += `<div>Chemistry: ${q.c} ${q.label} Questions</div>`;
+            if(q.m > 0) qLog += `<div>Math: ${q.m} ${q.label} Questions</div>`;
+        });
+
         const content = `
-            <h2 style="color:#fff">Summary: ${day.date}</h2>
-            <p><b>Goal:</b> ${day.goals}</p>
-            <div class="card">
-                <p>Net Points: ${day.matrix.net}</p>
-                <p>Study Hours: ${day.matrix.hrs.toFixed(1)}</p>
-                <p>Density: ${day.matrix.density.toFixed(2)}</p>
-                <p>Phone Usage: ${day.phone || 0} hrs</p>
+            <h2 style="color:#fff">Day Detail: ${day.date}</h2>
+            <span class="summary-label">Core Goals</span>
+            <div class="summary-val">${day.goals || "None"}</div>
+            
+            <span class="summary-label">Question Breakdown</span>
+            <div class="summary-val" style="font-size:0.85rem;">${qLog || "No questions logged"}</div>
+
+            <div class="grid-2" style="margin-top:15px;">
+                <div><span class="summary-label">Net Points</span><div class="summary-val">${day.matrix.net}</div></div>
+                <div><span class="summary-label">Phone Hours</span><div class="summary-val">${day.phone}h</div></div>
+                <div><span class="summary-label">Distractions</span><div class="summary-val">${day.matrix.dist}</div></div>
+            </div>
+
+            <span class="summary-label">Syllabus Covered</span>
+            <div class="card" style="font-size:0.8rem; margin-top:5px;">
+                <div><b>Physics:</b> ${day.material.p.chap} | ${day.material.p.con} | ${day.material.p.mat}</div>
+                <div><b>Chemistry:</b> ${day.material.c.chap} | ${day.material.c.con} | ${day.material.c.mat}</div>
+                <div><b>Math:</b> ${day.material.m.chap} | ${day.material.m.con} | ${day.material.m.mat}</div>
             </div>
         `;
         document.getElementById('summaryContent').innerHTML = content;
@@ -340,12 +325,11 @@
 
     function openPeriodSummary(type) {
         const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        if(db.length === 0) return alert("No data available.");
         const groups = {};
         db.forEach(entry => {
             let key;
             const date = new Date(entry.date);
-            if(type === 'month') { key = entry.date.substring(0, 7); } 
+            if(type === 'month') key = entry.date.substring(0, 7); 
             else {
                 const firstDay = new Date(date.getFullYear(), 0, 1);
                 const weekNum = Math.ceil((((date - firstDay) / 86400000) + firstDay.getDay() + 1) / 7);
@@ -354,58 +338,10 @@
             if(!groups[key]) groups[key] = [];
             groups[key].push(entry);
         });
-        let html = `<h2 style="color:#fff">Select a ${type === 'month' ? 'Month' : 'Week'}</h2>`;
+
+        let html = `<h2 style="color:#fff">${type === 'month' ? 'Monthly' : 'Weekly'} Records</h2>`;
         Object.keys(groups).sort().reverse().forEach(key => {
             html += `<div class="card" style="cursor:pointer" onclick="showGroupDetail('${key}', '${type}')"><b style="color:#fff">${key}</b></div>`;
         });
         document.getElementById('summaryContent').innerHTML = html;
-        document.getElementById('summaryModal').style.display = 'block';
-    }
-
-    function showGroupDetail(key, type) {
-        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        const filtered = db.filter(entry => {
-            if(type === 'month') return entry.date.startsWith(key);
-            const date = new Date(entry.date);
-            const firstDay = new Date(date.getFullYear(), 0, 1);
-            const weekNum = Math.ceil((((date - firstDay) / 86400000) + firstDay.getDay() + 1) / 7);
-            return `${date.getFullYear()}-W${weekNum}` === key;
-        });
-        const totalNet = filtered.reduce((s, c) => s + c.matrix.net, 0);
-        const totalHrs = filtered.reduce((s, c) => s + c.matrix.hrs, 0);
-        let html = `<h2 style="color:#fff">${key}</h2><div class="card"><p>Total Net: ${totalNet}</p><p>Total Hours: ${totalHrs.toFixed(1)}</p></div>`;
-        html += `<button class="btn btn-secondary" onclick="openPeriodSummary('${type}')">Back</button>`;
-        document.getElementById('summaryContent').innerHTML = html;
-    }
-
-    function closeModal() { document.getElementById('summaryModal').style.display = 'none'; }
-    window.onclick = function(event) { if (event.target == document.getElementById('summaryModal')) closeModal(); }
-    
-    function exportData() {
-        const data = localStorage.getItem('jee_v3') || '[]';
-        const blob = new Blob([data], {type: 'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `jee_omni_backup_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-    }
-
-    function importData(e) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            localStorage.setItem('jee_v3', event.target.result);
-            alert("Data Loaded Successfully.");
-            location.reload();
-        };
-        reader.readAsText(e.target.files[0]);
-    }
-
-    function clearAll() { 
-        if(confirm("DANGER: This will wipe data. Are you sure?")) { 
-            localStorage.removeItem('jee_v3'); 
-            location.reload(); 
-        } 
-    }
-</script>
-</body>
-</html>
+        document.getElementById('summaryModal'
