@@ -6,7 +6,7 @@
     <title>JEE Elite Omni Protocol</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #2a2a2a; --header: #fff; --accent: #444; }
+        :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #2a2a2a; --header: #fff; --accent: #444; --danger: #ff5555; }
         body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
         
         nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
@@ -40,11 +40,17 @@
         .btn { width: 100%; padding: 15px; border-radius: 4px; border: none; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
         .btn-primary { background: #fff; color: #000; }
         .btn-secondary { background: #1a1a1a; color: #fff; border: 1px solid var(--border); }
-        .btn-danger { background: #3a0a0a; color: #ff5555; border: 1px solid #5a1a1a; }
+        .btn-danger { background: #3a0a0a; color: var(--danger); border: 1px solid #5a1a1a; }
 
-        .log-item { background: #0a0a0a; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 10px; }
+        .log-item { background: #0a0a0a; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 10px; cursor: pointer; }
+        .log-item:hover { border-color: #555; }
         .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 8px; margin-bottom: 8px; }
         .sub-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin-right: 5px; color: #ccc; }
+
+        /* Modal Styles */
+        #summaryModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow-y: auto; }
+        .modal-content { background: #111; margin: 10% auto; padding: 20px; border: 1px solid var(--border); width: 85%; max-width: 500px; border-radius: 10px; }
+        .close-modal { color: #888; float: right; font-size: 28px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -82,6 +88,12 @@
                 <tr><td>Revision Hrs</td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td></tr>
                 <tr><td>Coaching/School</td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td></tr>
             </table>
+
+            <h2>Section 2.5: Screen Time</h2>
+            <div class="flex-row">
+                <span>Phone Usage (Minutes)</span>
+                <input type="number" id="phoneUsage" class="q-calc" placeholder="0" style="width:100px;">
+            </div>
         </div>
 
         <div class="grid-2">
@@ -131,6 +143,10 @@
 
         <div class="card">
             <div class="grid-2">
+                <button class="btn btn-secondary" onclick="aggregateSummary('week')">Weekly Summary</button>
+                <button class="btn btn-secondary" onclick="aggregateSummary('month')">Monthly Summary</button>
+            </div>
+            <div style="margin-top:15px;" class="grid-2">
                 <input type="text" id="searchFilter" placeholder="Search..." onkeyup="renderLog()">
                 <select id="sortFilter" onchange="renderLog()">
                     <option value="dateDesc">Sort: Date (Newest)</option>
@@ -158,6 +174,13 @@
     </div>
 </div>
 
+<div id="summaryModal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
 <script>
     // Set today's date
     document.getElementById('dateInput').valueAsDate = new Date();
@@ -166,7 +189,6 @@
     document.querySelectorAll('.q-calc, .t-calc').forEach(el => el.addEventListener('input', calculateMatrix));
 
     function calculateMatrix() {
-        // 1. Gross Points
         let gross = 0;
         document.querySelectorAll('#sec1 tr[data-pts]').forEach(row => {
             let pts = parseInt(row.getAttribute('data-pts'));
@@ -177,14 +199,13 @@
             gross += (pQ + cQ + mQ) * pts;
         });
 
-        // 2. Penalties & Bonuses
         let dist = parseInt(document.getElementById('penDist').value) || 0;
         let distPen = Math.floor(dist/5) * 10;
         let imbPen = parseInt(document.getElementById('penImb').value) || 0;
         
         let bonM = parseInt(document.getElementById('bonMains').value) || 0;
         let bonA = parseInt(document.getElementById('bonAdv').value) || 0;
-        let bonus = bonM + bonA; // +1 pt each
+        let bonus = bonM + bonA;
 
         let silM = parseInt(document.getElementById('silMains').value) || 0;
         let silA = parseInt(document.getElementById('silAdv').value) || 0;
@@ -192,22 +213,20 @@
 
         let net = gross - distPen - imbPen - silPen + bonus;
 
-        // 3. Study Hours (Total of Self-Study, Revision, and Coaching/School)
         let hrs = 0;
         document.querySelectorAll('.t-calc').forEach(input => {
             hrs += parseFloat(input.value) || 0;
         });
 
-        // 4. Density
         let density = hrs > 0 ? (net / hrs) : 0;
+        let phone = parseInt(document.getElementById('phoneUsage').value) || 0;
 
-        // Update UI
         document.getElementById('mxGross').innerText = gross;
         document.getElementById('mxNet').innerText = net;
         document.getElementById('mxHrs').innerText = hrs.toFixed(1);
         document.getElementById('mxDens').innerText = density.toFixed(2);
 
-        return { gross, net, hrs, density };
+        return { gross, net, hrs, density, phone };
     }
 
     function saveDiary() {
@@ -219,20 +238,17 @@
             matrix: matrix,
             material: {
                 p: { chap: document.getElementById('p-chap').value, con: document.getElementById('p-con').value, mat: document.getElementById('p-mat').value },
-                c: { chap: document.getElementById('c-chap').value, con: document.getElementById('c-con').value, mat: document.getElementById('c-mat').value },
+                c: { chap: document.getElementById('c-chap').value, con: document.getElementById('c-con').value, mat: document.getElementById('m-mat').value },
                 m: { chap: document.getElementById('m-chap').value, con: document.getElementById('m-con').value, mat: document.getElementById('m-mat').value }
             }
         };
 
         const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        // Remove existing entry for same date to overwrite, or just push
         const filteredDb = db.filter(d => d.date !== entry.date);
         filteredDb.push(entry);
         
         localStorage.setItem('jee_v3', JSON.stringify(filteredDb));
         alert("Diary Entry Saved Successfully.");
-        
-        // Clear inputs optional, keeping them is usually better for mobile editing
     }
 
     function showPage(id, btn) {
@@ -248,29 +264,22 @@
         const sortBy = document.getElementById('sortFilter').value;
         let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
 
-        // Filter
         if(query) {
             db = db.filter(item => {
-                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.p.con} ${item.material.p.mat} ${item.material.c.chap} ${item.material.c.con} ${item.material.c.mat} ${item.material.m.chap} ${item.material.m.con} ${item.material.m.mat}`.toLowerCase();
+                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.m.mat}`.toLowerCase();
                 return searchStr.includes(query);
             });
         }
 
-        // Sort
         db.sort((a, b) => {
             if(sortBy === 'dateDesc') return new Date(b.date) - new Date(a.date);
             if(sortBy === 'dateAsc') return new Date(a.date) - new Date(b.date);
-            
-            const getStr = (item, field) => `${item.material.p[field]} ${item.material.c[field]} ${item.material.m[field]}`.toLowerCase();
-            
-            if(sortBy === 'chapter') return getStr(a, 'chap').localeCompare(getStr(b, 'chap'));
-            if(sortBy === 'concept') return getStr(a, 'con').localeCompare(getStr(b, 'con'));
-            if(sortBy === 'material') return getStr(a, 'mat').localeCompare(getStr(b, 'mat'));
+            return 0;
         });
 
         const container = document.getElementById('historyContainer');
         container.innerHTML = db.map(item => `
-            <div class="log-item">
+            <div class="log-item" onclick="viewDaySummary('${item.date}')">
                 <div class="log-header">
                     <b style="color:#fff">${item.date}</b>
                     <span style="color:#fff; font-weight:bold;">${item.matrix.density.toFixed(2)} Dns</span>
@@ -278,71 +287,66 @@
                 <div style="font-size:0.8rem; color:#888; margin-bottom:8px;">Goal: ${item.goals || 'N/A'}</div>
                 <div style="font-size:0.75rem; margin-bottom:8px;">
                     Net Pts: <b style="color:#fff">${item.matrix.net}</b> | 
-                    Hrs: <b style="color:#fff">${item.matrix.hrs.toFixed(1)}</b>
-                </div>
-                <div style="font-size:0.75rem; line-height:1.4;">
-                    <span class="sub-tag">P</span> ${item.material.p.chap} - ${item.material.p.con} <br>
-                    <span class="sub-tag">C</span> ${item.material.c.chap} - ${item.material.c.con} <br>
-                    <span class="sub-tag">M</span> ${item.material.m.chap} - ${item.material.m.con}
+                    Hrs: <b style="color:#fff">${item.matrix.hrs.toFixed(1)}</b> |
+                    Phone: <b style="color:#ff5555">${item.matrix.phone || 0}m</b>
                 </div>
             </div>
         `).join('');
     }
 
-    let chartDens, chartHrs;
-    function renderCharts() {
-        let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        db.sort((a, b) => new Date(a.date) - new Date(b.date)); // chronological for charts
+    // Modal Logic
+    function viewDaySummary(dateStr) {
+        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        const entry = db.find(d => d.date === dateStr);
+        if(!entry) return;
 
-        const labels = db.map(d => d.date.substring(5)); // MM-DD
-        const densData = db.map(d => d.matrix.density);
-        const hrsData = db.map(d => d.matrix.hrs);
-
-        Chart.defaults.color = '#888';
-        Chart.defaults.borderColor = '#222';
-
-        if(chartDens) chartDens.destroy();
-        chartDens = new Chart(document.getElementById('densityChart'), {
-            type: 'line',
-            data: { labels, datasets: [{ label: 'Density (Net Pts / Hr)', data: densData, borderColor: '#4caf50', backgroundColor: 'rgba(76, 175, 80, 0.1)', fill: true, tension: 0.3 }] },
-            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
-        });
-
-        if(chartHrs) chartHrs.destroy();
-        chartHrs = new Chart(document.getElementById('hoursChart'), {
-            type: 'bar',
-            data: { labels, datasets: [{ label: 'Study Hours', data: hrsData, backgroundColor: '#2196f3', borderRadius: 4 }] },
-            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
-        });
+        const body = document.getElementById('modalBody');
+        body.innerHTML = `
+            <h2 style="border-color:#4caf50">Summary: ${entry.date}</h2>
+            <div class="flex-row"><span>Gross Points:</span> <b>${entry.matrix.gross}</b></div>
+            <div class="flex-row"><span>Net Points:</span> <b>${entry.matrix.net}</b></div>
+            <div class="flex-row"><span>Study Hours:</span> <b>${entry.matrix.hrs}h</b></div>
+            <div class="flex-row"><span>Density:</span> <b>${entry.matrix.density.toFixed(2)}</b></div>
+            <div class="flex-row"><span>Phone Usage:</span> <b style="color:var(--danger)">${entry.matrix.phone || 0} mins</b></div>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <h3>Material Covered</h3>
+            <p style="font-size:0.85rem"><b>P:</b> ${entry.material.p.chap} (${entry.material.p.con})</p>
+            <p style="font-size:0.85rem"><b>C:</b> ${entry.material.c.chap} (${entry.material.c.con})</p>
+            <p style="font-size:0.85rem"><b>M:</b> ${entry.material.m.chap} (${entry.material.m.con})</p>
+        `;
+        document.getElementById('summaryModal').style.display = "block";
     }
 
-    // Data Management
-    function exportData() {
-        const data = localStorage.getItem('jee_v3') || '[]';
-        const blob = new Blob([data], {type: 'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `jee_omni_backup_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
+    function aggregateSummary(type) {
+        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        if(db.length === 0) return alert("No data found.");
+
+        const now = new Date();
+        let filtered;
+        if(type === 'week') {
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            filtered = db.filter(d => new Date(d.date) >= lastWeek);
+        } else {
+            filtered = db.filter(d => new Date(d.date).getMonth() === now.getMonth());
+        }
+
+        const totals = filtered.reduce((acc, curr) => {
+            acc.net += curr.matrix.net;
+            acc.hrs += curr.matrix.hrs;
+            acc.phone += (curr.matrix.phone || 0);
+            return acc;
+        }, { net:0, hrs:0, phone:0 });
+
+        const body = document.getElementById('modalBody');
+        body.innerHTML = `
+            <h2 style="border-color:#2196f3">${type === 'week' ? 'Weekly' : 'Monthly'} Aggregate</h2>
+            <div class="flex-row"><span>Total Net Pts:</span> <b>${totals.net}</b></div>
+            <div class="flex-row"><span>Total Hours:</span> <b>${totals.hrs.toFixed(1)}h</b></div>
+            <div class="flex-row"><span>Total Phone:</span> <b style="color:var(--danger)">${(totals.phone/60).toFixed(1)} hrs</b></div>
+            <div class="flex-row"><span>Avg Density:</span> <b>${totals.hrs > 0 ? (totals.net/totals.hrs).toFixed(2) : 0}</b></div>
+            <div class="flex-row"><span>Days Logged:</span> <b>${filtered.length}</b></div>
+        `;
+        document.getElementById('summaryModal').style.display = "block";
     }
 
-    function importData(e) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            localStorage.setItem('jee_v3', event.target.result);
-            alert("Data Loaded Successfully.");
-            location.reload();
-        };
-        reader.readAsText(e.target.files[0]);
-    }
-
-    function clearAll() { 
-        if(confirm("DANGER: This will permanently wipe your phone's database. Are you sure?")) { 
-            localStorage.removeItem('jee_v3'); 
-            location.reload(); 
-        } 
-    }
-</script>
-</body>
-    </html>
-                    
+    function closeModal() { document.getElementById('summaryModal').style.display
