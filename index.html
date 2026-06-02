@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEE Elite Omni Protocol</title>
+    <title>JEE Diary</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #2a2a2a; --header: #fff; --accent: #444; --danger: #ff5555; }
+        :root { --bg: #050505; --card: #111; --text: #b0b0b0; --border: #2a2a2a; --header: #fff; --accent: #444; }
         body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
         
         nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
@@ -40,20 +40,27 @@
         .btn { width: 100%; padding: 15px; border-radius: 4px; border: none; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
         .btn-primary { background: #fff; color: #000; }
         .btn-secondary { background: #1a1a1a; color: #fff; border: 1px solid var(--border); }
-        .btn-danger { background: #3a0a0a; color: var(--danger); border: 1px solid #5a1a1a; }
+        .btn-danger { background: #3a0a0a; color: #ff5555; border: 1px solid #5a1a1a; }
 
-        .log-item { background: #0a0a0a; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 10px; cursor: pointer; }
+        .log-item { background: #0a0a0a; border: 1px solid var(--border); padding: 15px; border-radius: 6px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
         .log-item:hover { border-color: #555; }
         .log-header { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 8px; margin-bottom: 8px; }
         .sub-tag { display: inline-block; background: #222; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; margin-right: 5px; color: #ccc; }
 
         /* Modal Styles */
-        #summaryModal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow-y: auto; }
-        .modal-content { background: #111; margin: 10% auto; padding: 20px; border: 1px solid var(--border); width: 85%; max-width: 500px; border-radius: 10px; }
-        .close-modal { color: #888; float: right; font-size: 28px; cursor: pointer; }
+        #summaryModal { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; overflow-y: auto; }
+        .modal-content { max-width: 600px; margin: 40px auto; padding: 20px; background: #111; border: 1px solid var(--border); border-radius: 8px; }
+        .close-modal { float: right; cursor: pointer; color: #888; font-size: 1.5rem; }
     </style>
 </head>
 <body>
+
+<div id="summaryModal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div id="summaryContent"></div>
+    </div>
+</div>
 
 <nav>
     <button class="active" onclick="showPage('log', this)">Diary Entry</button>
@@ -89,11 +96,8 @@
                 <tr><td>Coaching/School</td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td><td><input type="number" step="0.1" class="t-calc"></td></tr>
             </table>
 
-            <h2>Section 2.5: Screen Time</h2>
-            <div class="flex-row">
-                <span>Phone Usage (Minutes)</span>
-                <input type="number" id="phoneUsage" class="q-calc" placeholder="0" style="width:100px;">
-            </div>
+            <h2>Phone Usage Tracker</h2>
+            <div class="flex-row"><span>Total Screen Time (Hrs)</span><input type="number" id="phoneUsage" step="0.1" placeholder="0.0"></div>
         </div>
 
         <div class="grid-2">
@@ -143,10 +147,11 @@
 
         <div class="card">
             <div class="grid-2">
-                <button class="btn btn-secondary" onclick="aggregateSummary('week')">Weekly Summary</button>
-                <button class="btn btn-secondary" onclick="aggregateSummary('month')">Monthly Summary</button>
+                <button class="btn btn-secondary" onclick="openPeriodSummary('week')">Weekly Summary</button>
+                <button class="btn btn-secondary" onclick="openPeriodSummary('month')">Monthly Summary</button>
             </div>
-            <div style="margin-top:15px;" class="grid-2">
+            <br>
+            <div class="grid-2">
                 <input type="text" id="searchFilter" placeholder="Search..." onkeyup="renderLog()">
                 <select id="sortFilter" onchange="renderLog()">
                     <option value="dateDesc">Sort: Date (Newest)</option>
@@ -174,18 +179,8 @@
     </div>
 </div>
 
-<div id="summaryModal">
-    <div class="modal-content">
-        <span class="close-modal" onclick="closeModal()">&times;</span>
-        <div id="modalBody"></div>
-    </div>
-</div>
-
 <script>
-    // Set today's date
     document.getElementById('dateInput').valueAsDate = new Date();
-
-    // Attach Live Calculators
     document.querySelectorAll('.q-calc, .t-calc').forEach(el => el.addEventListener('input', calculateMatrix));
 
     function calculateMatrix() {
@@ -202,15 +197,12 @@
         let dist = parseInt(document.getElementById('penDist').value) || 0;
         let distPen = Math.floor(dist/5) * 10;
         let imbPen = parseInt(document.getElementById('penImb').value) || 0;
-        
         let bonM = parseInt(document.getElementById('bonMains').value) || 0;
         let bonA = parseInt(document.getElementById('bonAdv').value) || 0;
-        let bonus = bonM + bonA;
-
+        let bonus = bonM + bonA; 
         let silM = parseInt(document.getElementById('silMains').value) || 0;
         let silA = parseInt(document.getElementById('silAdv').value) || 0;
         let silPen = (silM * 2) + (silA * 5);
-
         let net = gross - distPen - imbPen - silPen + bonus;
 
         let hrs = 0;
@@ -219,14 +211,13 @@
         });
 
         let density = hrs > 0 ? (net / hrs) : 0;
-        let phone = parseInt(document.getElementById('phoneUsage').value) || 0;
 
         document.getElementById('mxGross').innerText = gross;
         document.getElementById('mxNet').innerText = net;
         document.getElementById('mxHrs').innerText = hrs.toFixed(1);
         document.getElementById('mxDens').innerText = density.toFixed(2);
 
-        return { gross, net, hrs, density, phone };
+        return { gross, net, hrs, density };
     }
 
     function saveDiary() {
@@ -235,10 +226,11 @@
             id: Date.now(),
             date: document.getElementById('dateInput').value,
             goals: document.getElementById('coreGoals').value,
+            phone: parseFloat(document.getElementById('phoneUsage').value) || 0,
             matrix: matrix,
             material: {
                 p: { chap: document.getElementById('p-chap').value, con: document.getElementById('p-con').value, mat: document.getElementById('p-mat').value },
-                c: { chap: document.getElementById('c-chap').value, con: document.getElementById('c-con').value, mat: document.getElementById('m-mat').value },
+                c: { chap: document.getElementById('c-chap').value, con: document.getElementById('c-con').value, mat: document.getElementById('c-mat').value },
                 m: { chap: document.getElementById('m-chap').value, con: document.getElementById('m-con').value, mat: document.getElementById('m-mat').value }
             }
         };
@@ -246,7 +238,6 @@
         const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
         const filteredDb = db.filter(d => d.date !== entry.date);
         filteredDb.push(entry);
-        
         localStorage.setItem('jee_v3', JSON.stringify(filteredDb));
         alert("Diary Entry Saved Successfully.");
     }
@@ -266,7 +257,7 @@
 
         if(query) {
             db = db.filter(item => {
-                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.m.mat}`.toLowerCase();
+                const searchStr = `${item.date} ${item.goals} ${item.material.p.chap} ${item.material.p.con} ${item.material.p.mat} ${item.material.c.chap} ${item.material.c.con} ${item.material.c.mat} ${item.material.m.chap} ${item.material.m.con} ${item.material.m.mat}`.toLowerCase();
                 return searchStr.includes(query);
             });
         }
@@ -274,12 +265,15 @@
         db.sort((a, b) => {
             if(sortBy === 'dateDesc') return new Date(b.date) - new Date(a.date);
             if(sortBy === 'dateAsc') return new Date(a.date) - new Date(b.date);
-            return 0;
+            const getStr = (item, field) => `${item.material.p[field]} ${item.material.c[field]} ${item.material.m[field]}`.toLowerCase();
+            if(sortBy === 'chapter') return getStr(a, 'chap').localeCompare(getStr(b, 'chap'));
+            if(sortBy === 'concept') return getStr(a, 'con').localeCompare(getStr(b, 'con'));
+            if(sortBy === 'material') return getStr(a, 'mat').localeCompare(getStr(b, 'mat'));
         });
 
         const container = document.getElementById('historyContainer');
         container.innerHTML = db.map(item => `
-            <div class="log-item" onclick="viewDaySummary('${item.date}')">
+            <div class="log-item" onclick="openDaySummary('${item.date}')">
                 <div class="log-header">
                     <b style="color:#fff">${item.date}</b>
                     <span style="color:#fff; font-weight:bold;">${item.matrix.density.toFixed(2)} Dns</span>
@@ -288,65 +282,65 @@
                 <div style="font-size:0.75rem; margin-bottom:8px;">
                     Net Pts: <b style="color:#fff">${item.matrix.net}</b> | 
                     Hrs: <b style="color:#fff">${item.matrix.hrs.toFixed(1)}</b> |
-                    Phone: <b style="color:#ff5555">${item.matrix.phone || 0}m</b>
+                    Phone: <b style="color:#ff5555">${item.phone || 0}h</b>
+                </div>
+                <div style="font-size:0.75rem; line-height:1.4;">
+                    <span class="sub-tag">P</span> ${item.material.p.chap} <br>
+                    <span class="sub-tag">C</span> ${item.material.c.chap} <br>
+                    <span class="sub-tag">M</span> ${item.material.m.chap}
                 </div>
             </div>
         `).join('');
     }
 
-    // Modal Logic
-    function viewDaySummary(dateStr) {
-        const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        const entry = db.find(d => d.date === dateStr);
-        if(!entry) return;
+    let chartDens, chartHrs;
+    function renderCharts() {
+        let db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
+        db.sort((a, b) => new Date(a.date) - new Date(b.date)); 
 
-        const body = document.getElementById('modalBody');
-        body.innerHTML = `
-            <h2 style="border-color:#4caf50">Summary: ${entry.date}</h2>
-            <div class="flex-row"><span>Gross Points:</span> <b>${entry.matrix.gross}</b></div>
-            <div class="flex-row"><span>Net Points:</span> <b>${entry.matrix.net}</b></div>
-            <div class="flex-row"><span>Study Hours:</span> <b>${entry.matrix.hrs}h</b></div>
-            <div class="flex-row"><span>Density:</span> <b>${entry.matrix.density.toFixed(2)}</b></div>
-            <div class="flex-row"><span>Phone Usage:</span> <b style="color:var(--danger)">${entry.matrix.phone || 0} mins</b></div>
-            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-            <h3>Material Covered</h3>
-            <p style="font-size:0.85rem"><b>P:</b> ${entry.material.p.chap} (${entry.material.p.con})</p>
-            <p style="font-size:0.85rem"><b>C:</b> ${entry.material.c.chap} (${entry.material.c.con})</p>
-            <p style="font-size:0.85rem"><b>M:</b> ${entry.material.m.chap} (${entry.material.m.con})</p>
-        `;
-        document.getElementById('summaryModal').style.display = "block";
+        const labels = db.map(d => d.date.substring(5)); 
+        const densData = db.map(d => d.matrix.density);
+        
+        let cumulativeHrs = 0;
+        const hrsData = db.map(d => {
+            cumulativeHrs += d.matrix.hrs;
+            return cumulativeHrs;
+        });
+
+        Chart.defaults.color = '#888';
+        Chart.defaults.borderColor = '#222';
+
+        if(chartDens) chartDens.destroy();
+        chartDens = new Chart(document.getElementById('densityChart'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Density (Net Pts / Hr)', data: densData, borderColor: '#4caf50', backgroundColor: 'rgba(76, 175, 80, 0.1)', fill: true, tension: 0.3 }] },
+            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        if(chartHrs) chartHrs.destroy();
+        chartHrs = new Chart(document.getElementById('hoursChart'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Cumulative Study Hours', data: hrsData, borderColor: '#2196f3', backgroundColor: 'rgba(33, 150, 243, 0.1)', fill: true, tension: 0.1 }] },
+            options: { plugins: { legend: { labels: { color: '#fff' } } }, scales: { y: { beginAtZero: true } } }
+        });
     }
 
-    function aggregateSummary(type) {
+    // Modal & Summary Logic
+    function openDaySummary(dateStr) {
         const db = JSON.parse(localStorage.getItem('jee_v3') || '[]');
-        if(db.length === 0) return alert("No data found.");
+        const day = db.find(d => d.date === dateStr);
+        if(!day) return;
 
-        const now = new Date();
-        let filtered;
-        if(type === 'week') {
-            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            filtered = db.filter(d => new Date(d.date) >= lastWeek);
-        } else {
-            filtered = db.filter(d => new Date(d.date).getMonth() === now.getMonth());
-        }
-
-        const totals = filtered.reduce((acc, curr) => {
-            acc.net += curr.matrix.net;
-            acc.hrs += curr.matrix.hrs;
-            acc.phone += (curr.matrix.phone || 0);
-            return acc;
-        }, { net:0, hrs:0, phone:0 });
-
-        const body = document.getElementById('modalBody');
-        body.innerHTML = `
-            <h2 style="border-color:#2196f3">${type === 'week' ? 'Weekly' : 'Monthly'} Aggregate</h2>
-            <div class="flex-row"><span>Total Net Pts:</span> <b>${totals.net}</b></div>
-            <div class="flex-row"><span>Total Hours:</span> <b>${totals.hrs.toFixed(1)}h</b></div>
-            <div class="flex-row"><span>Total Phone:</span> <b style="color:var(--danger)">${(totals.phone/60).toFixed(1)} hrs</b></div>
-            <div class="flex-row"><span>Avg Density:</span> <b>${totals.hrs > 0 ? (totals.net/totals.hrs).toFixed(2) : 0}</b></div>
-            <div class="flex-row"><span>Days Logged:</span> <b>${filtered.length}</b></div>
-        `;
-        document.getElementById('summaryModal').style.display = "block";
-    }
-
-    function closeModal() { document.getElementById('summaryModal').style.display
+        const content = `
+            <h2 style="color:#fff">Summary: ${day.date}</h2>
+            <p><b>Goal:</b> ${day.goals}</p>
+            <div class="card">
+                <p>Net Points: ${day.matrix.net}</p>
+                <p>Study Hours: ${day.matrix.hrs.toFixed(1)}</p>
+                <p>Density: ${day.matrix.density.toFixed(2)}</p>
+                <p>Phone Usage: ${day.phone || 0} hrs</p>
+            </div>
+            <h3>Material Covered:</h3>
+            <p><span class="sub-tag">P</span> ${day.material.p.chap}: ${day.material.p.con}</p>
+            <p><span class="sub-tag">C</span> ${day.material.c.chap}: ${day.material.c.con}</p>
+            <p><span class="sub-tag"
